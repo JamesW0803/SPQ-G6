@@ -8,29 +8,31 @@
 #include <time.h>
 
 // Sensor Pin Configuration
-#define DHTPIN 16
-#define DHTTYPE DHT11
+#define DHT_PIN 16
+#define DHT_TYPE DHT11
 #define MQ2_PIN 32
 #define LDR_PIN 33
 
-class SensorModule {
+class SensorModule
+{
 public:
-    SensorModule(uint8_t dhtPin, uint8_t dhtType, uint8_t* soilPins, int numPlants);
+    SensorModule(uint8_t dhtPin, uint8_t dhtType, uint8_t *soilPins, int numPlants);
     void begin();
-    void addPlant(int plantIndex, int soilPin, const String& plantId);
-    void sendAllToCloud(const String& serverURL, const String& userId);
+    void addPlant(int plantIndex, int soilPin, const String &plantId);
+    void sendAllToCloud(const String &serverURL, const String &userId);
 
 private:
-    struct Plant {
+    struct Plant
+    {
         int soilPin;
         String plantId;
     };
-    
+
     static const int MAX_PLANTS = 4;
     Plant plants[MAX_PLANTS];
 
     DHT dht;
-    uint8_t* _soilPins;
+    uint8_t *_soilPins;
     int _numPlants;
 
     float readSoilMoisture(int pin);
@@ -42,4 +44,3 @@ private:
 };
 
 #endif
-
