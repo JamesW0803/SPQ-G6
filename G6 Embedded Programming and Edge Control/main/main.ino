@@ -14,8 +14,6 @@ const String USER_ID = "5ZyZcYb6wpdlObgeJiaGZ0ydMbW2";
 // Adafruit IO MQTT config
 const char* MQTT_SERVER = "io.adafruit.com";
 const int MQTT_PORT = 1883;
-extern const char* AIO_USERNAME;
-extern const char* AIO_KEY;
 const char* MQTT_TOPIC = "SmartGrow/feeds/actuator-status";
 
 // GPIO Definitions
@@ -24,7 +22,14 @@ const char *PLANT_IDS[] = {
     "plant_JU4Rj78DEHUM2lNYHzd3",
     "plant_CyhF06FW5a1KTmCvM0zf",
     "plant_hG7bPH7Np9WXtDe1zBVE",
-    "plant_iKjnBJcBaGTx6LyCXUy2"};
+    "plant_iKjnBJcBaGTx6LyCXUy2"
+  };
+
+// Actuator PIN
+const int PUMP_PIN = 1;
+const int FAN_PIN = 2;
+const int LIGHT_PIN = 4;
+
 
 // WiFi & MQTT Clients
 WiFiClient wifiClient;
@@ -34,7 +39,7 @@ PubSubClient mqttClient(wifiClient);
 SensorModule sensor(DHT_PIN, DHT_TYPE, (uint8_t *)SOIL_PINS, 4);
 
 // Actuator Setup ActuatorModule(PUMP_PIN,FAN_PIN,LIGHT_PIN)
-ActuatorModule actuator(5, 6, 7);
+ActuatorModule actuator(PUMP_PIN, FAN_PIN, LIGHT_PIN);
 
 void connectToWiFi()
 {
@@ -63,7 +68,7 @@ void connectToMQTT() {
 }
 
 // MQTT Callback Function 
-void callback(char* topic, byte* payload, unsigned int length) { 
+void mqttCallback(char* topic, byte* payload, unsigned int length) { 
   StaticJsonDocument<100> doc; 
   DeserializationError error = deserializeJson(doc, payload, length); 
    
@@ -117,4 +122,6 @@ void loop()
     connectToMQTT();
   }
   mqttClient.loop();  // check for MQTT messages
+  Serial.print("Started...");
+
 }
