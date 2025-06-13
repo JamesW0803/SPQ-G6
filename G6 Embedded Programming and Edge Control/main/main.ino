@@ -26,9 +26,9 @@ const char *PLANT_IDS[] = {
   };
 
 // Actuator PIN
-const int PUMP_PIN = 1;
-const int FAN_PIN = 2;
-const int LIGHT_PIN = 4;
+const int PUMP_PIN = 27;
+const int FAN_PIN = 32;
+const int LIGHT_PIN = 26;
 
 
 // WiFi & MQTT Clients
@@ -55,9 +55,9 @@ void connectToWiFi()
 
 void connectToMQTT() {
   while (!mqttClient.connected()) {
-    Serial.print("Connecting to MQTT...");
-    if (mqttClient.connect("ESP32Client", AIO_USERNAME, AIO_KEY)) {
-      Serial.println(" connected!");
+    Serial.println("Connecting to MQTT...");
+    if (mqttClient.connect("ESP32Client123", AIO_USERNAME, AIO_KEY)) {
+      Serial.println("MQTT connected!");
       mqttClient.subscribe(MQTT_TOPIC);
     } else {
       Serial.print(" failed, rc=");
@@ -69,15 +69,24 @@ void connectToMQTT() {
 
 // MQTT Callback Function 
 void mqttCallback(char* topic, byte* payload, unsigned int length) { 
+  Serial.println("Signal received");
   StaticJsonDocument<100> doc; 
   DeserializationError error = deserializeJson(doc, payload, length); 
    
-  if (error) return; 
+  if (error) {
+    Serial.println("Error receiving signal");
+    return;
+  } 
  
   if (doc.containsKey("fan")) { 
     String state = doc["fan"]; 
     // digitalWrite(FAN_PIN, (state == "ON") ? HIGH : LOW); 
     actuator.setFan(state == "ON" ? true : false );
+    if(state == "ON"){
+        Serial.println("FAN ON!");
+    }else{
+        Serial.println("FAN OFF!");
+    }
   } 
  
   if (doc.containsKey("pump")) { 
@@ -91,6 +100,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     String state = doc["light"]; 
     // digitalWrite(LIGHT_PIN, (state == "ON") ? HIGH : LOW); 
     actuator.setLight(state == "ON" ? true : false );
+    if(state == "ON"){
+        Serial.println("Light ON!");
+    }else{
+        Serial.println("Light OFF!");
+    }
 
   } 
 }
@@ -99,29 +113,27 @@ void setup()
 {
   Serial.begin(115200);
   connectToWiFi();
-  sensor.begin();
+  // sensor.begin();
   actuator.begin();
 
   mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
   mqttClient.setCallback(mqttCallback);
 
-  for (int i = 0; i < 4; ++i)
-  {
-    sensor.addPlant(i, SOIL_PINS[i], PLANT_IDS[i]);
-  }
+  // for (int i = 0; i < 4; ++i)
+  // {
+  //   sensor.addPlant(i, SOIL_PINS[i], PLANT_IDS[i]);
+  // }
   connectToMQTT();
 
 }
 
 void loop()
 {
-  sensor.sendAllToCloud(SERVER_URL, USER_ID);
-  delay(60000); // 60s interval
+  // Serial.println("Loop started...");
+  // sensor.sendAllToCloud(SERVER_URL, USER_ID);
 
   if (!mqttClient.connected()) {
     connectToMQTT();
   }
   mqttClient.loop();  // check for MQTT messages
-  Serial.print("Started...");
-
 }

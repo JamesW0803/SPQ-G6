@@ -7,9 +7,11 @@ ActuatorModule::ActuatorModule(int pump, int fan, int light) {
 }
 
 void ActuatorModule::begin() {
-  pinMode(pumpPin, OUTPUT);
+  Serial.println("Initializing actuators...");
+  // pinMode(pumpPin, OUTPUT);
   pinMode(fanPin, OUTPUT);
   pinMode(lightPin, OUTPUT);
+  Serial.println("Actuators initialized.");
 }
 
 void ActuatorModule::setPump(bool state) {
