@@ -8,12 +8,25 @@
 #include <vector>
 #include <utility> // for std::pair
 
+struct PlantData {
+    String plantId;
+    int moisturePin;
+    float min_moisture;
+    float min_temperature;
+    float min_light;
+    float min_airQuality;
+    float max_moisture;
+    float max_temperature;
+    float max_light;
+    float max_airQuality;
+};
+
 class RESTClient {
 public:
     RESTClient(const String &serverUrl, bool insecure = true);
 
     // Returns a vector of <plantId, soilPin> pairs from a zone
-    std::vector<std::pair<String, int>> getPlantPinPairs(const String &zoneId);
+    std::vector<PlantData> getPlantsByZone(const String &zoneId);
 
     bool sendZoneSensorData(
         const String &zoneId,
