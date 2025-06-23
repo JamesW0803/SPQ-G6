@@ -6,6 +6,7 @@
 #include <DHT.h>
 #include <Arduino.h>
 #include <time.h>
+#include <ArduinoJson.h>
 
 // Sensor Pin Configuration
 #define DHT_PIN 16
@@ -29,7 +30,13 @@ public:
     void addPlant(int plantIndex, int soilPin, const String &plantId);
     void sendAllToCloud(const String &serverURL, const String &userId);
     bool fetchThresholdsFromAPI();
-    bool checkAndTrigger(const String& sensorName, int sensorValue, float minVal, float maxVal);
+    bool checkAndTrigger(const String& sensorName, int sensorValue, float maxVal);
+    float readSoilMoisture(int pin);
+    float readTemperature();
+    float readHumidity();
+    float readAirQuality();
+    float readLightLevel();
+    bool shouldWaterPlants();
 
 private:
     struct Plant
@@ -45,12 +52,12 @@ private:
     uint8_t *_soilPins;
     int _numPlants;
 
-    float readSoilMoisture(int pin);
-    float readTemperature();
-    float readHumidity();
-    float readAirQuality();
-    float readLightLevel();
-    bool shouldWaterPlants();
+    // float readSoilMoisture(int pin);
+    // float readTemperature();
+    // float readHumidity();
+    // float readAirQuality();
+    // float readLightLevel();
+    // bool shouldWaterPlants();
     String getISO8601Time();
 };
 
