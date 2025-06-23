@@ -6,7 +6,9 @@
 #include <DHT.h>
 #include <Arduino.h>
 #include <time.h>
-#include <ArduinoJson.h>
+#include <ArduinoJson.h> 
+#include <utility> // for std::pair
+#include "RESTClient.h"
 
 // Sensor Pin Configuration
 #define DHT_PIN 16
@@ -36,9 +38,13 @@ public:
     float readHumidity();
     float readAirQuality();
     float readLightLevel();
+<<<<<<< Updated upstream
     bool fetchMoistureThresholdsForEachPlant(const std::vector<std::pair<String, int>>& plantPinPairs);
     std::map<int, std::pair<float, float>> pinThresholds;
     bool shouldWater();
+=======
+    bool shouldWater(const std::vector<PlantData>& plantList);
+>>>>>>> Stashed changes
 
 private:
     struct Plant

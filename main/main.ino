@@ -59,6 +59,8 @@ SensorModule sensor(DHT_PIN, DHT_TYPE, (uint8_t *)SOIL_PINS, 4);
 // Actuator Setup ActuatorModule(PUMP_PIN,FAN_PIN,LIGHT_PIN)
 ActuatorModule actuator(PUMP_PIN, FAN_PIN_1, FAN_PIN_2, LIGHT_PIN, &publishFeed, &subscribeFeed);
 
+std::vector<PlantData> plants;
+
 void connectToWiFi()
 {
   Serial.print("Connecting to WiFi");
@@ -171,11 +173,32 @@ void setup()
   sensor.begin();
   actuator.begin();
 
+<<<<<<< Updated upstream
   std::vector<std::pair<String, int>> plantMappings = restClient.getPlantPinPairs("zone4");
   
   if (plantMappings.size() == 0) {
     Serial.println("[ERROR] No plant mapping found!");
     return;
+=======
+  Serial.println("Relay ON (Pump OFF with NC)");
+  digitalWrite(PUMP_PIN, HIGH);
+  delay(5000); // wait 5 sec
+
+  Serial.println("Relay OFF (Pump ON with NC)");
+  digitalWrite(PUMP_PIN, LOW);
+  delay(5000);
+
+  plants = restClient.getPlantsByZone("zone4");
+
+  for (const auto& p : plants) {
+      Serial.println("Plant ID: " + p.plantId);
+      Serial.print("Moisture pin: "); Serial.println(p.moisturePin);
+      Serial.print("Moisture Threshold: "); Serial.print(p.min_moisture); Serial.print(" - "); Serial.println(p.max_moisture);
+      Serial.print("Temperature Threshold: "); Serial.print(p.min_temperature); Serial.print(" - "); Serial.println(p.max_temperature);
+      Serial.print("Light Threshold: "); Serial.print(p.min_light); Serial.print(" - "); Serial.println(p.max_light);
+      Serial.print("Air Quality Threshold: "); Serial.print(p.min_airQuality); Serial.print(" - "); Serial.println(p.max_airQuality);
+      Serial.println();
+>>>>>>> Stashed changes
   }
   
   for (size_t i = 0; i < plantMappings.size(); ++i) {
@@ -201,6 +224,7 @@ void setup()
 
 void loop()
 {
+<<<<<<< Updated upstream
   MqttModule::connectToMqtt(mqtt);
   // Listen for MQTT messages
   // Adafruit_MQTT_Subscribe *subscription;
@@ -226,13 +250,33 @@ void loop()
     Serial.println("[Loop] No message received.");
   }
   // Serial.println("Loop started...");
+=======
+  // if (!mqtt.connected()) {
+  //   MqttModule::connectToMqtt(mqtt);
+  // }  
+
+  // Check for any incoming messages
+  // Adafruit_MQTT_Subscribe *subscription;
+  // while ((subscription = mqtt.readSubscription(5000))) {
+  //   if (subscription == &subscribeFeed) {
+  //     String jsonStr = (char*)subscribeFeed.lastread;
+  //     Serial.println("Received JSON: " + jsonStr);
+  //     actuator.callback(subscription); // Handle MQTT message
+  //   }
+  // }
+
+>>>>>>> Stashed changes
   // sensor.sendAllToCloud(SERVER_URL, USER_ID);
    evaluateSensorsAndTrigger();
 
+<<<<<<< Updated upstream
   // Soil moisture watering logic
   // if (sensor.fetchThresholdsFromAPI()) {
 
   if (sensor.shouldWater()) {
+=======
+  if (sensor.shouldWater(plants)) {
+>>>>>>> Stashed changes
     Serial.println("[PUMP] Watering needed → ON");
     digitalWrite(PUMP_PIN, HIGH);
     actuator.setPump(true);
@@ -242,9 +286,13 @@ void loop()
     actuator.setPump(false);
   }
 
+<<<<<<< Updated upstream
   // if (!mqttClient.connected()) {
   //   connectToMQTT();
   // }
   // mqttClient.loop();  // Handle MQTT
   delay(10000);       // Wait 10s before next loop
+=======
+  delay(1000);       // Wait 10s before next loop
+>>>>>>> Stashed changes
 }

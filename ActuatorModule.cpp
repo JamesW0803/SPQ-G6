@@ -17,7 +17,7 @@ ActuatorModule::ActuatorModule(
 
 void ActuatorModule::begin() {
   Serial.println("Initializing actuators...");
-  // pinMode(pumpPin, OUTPUT);
+  pinMode(pumpPin, OUTPUT);
   pinMode(fanPin1, OUTPUT);
   pinMode(fanPin2, OUTPUT);
   pinMode(lightPin, OUTPUT);
