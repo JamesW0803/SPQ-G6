@@ -71,19 +71,19 @@ void connectToWiFi()
   Serial.println("\nWiFi connected!");
 }
 
-// void connectToMQTT() {
-//   while (!mqttClient.connected()) {
-//     Serial.println("Connecting to MQTT...");
-//     if (mqttClient.connect("ESP32Client123", AIO_USERNAME, AIO_KEY)) {
-//       Serial.println("MQTT connected!");
-//       mqttClient.subscribe(MQTT_TOPIC);
-//     } else {
-//       Serial.print(" failed, rc=");
-//       Serial.print(mqttClient.state());
-//       delay(2000);
-//     }
-//   }
-// }
+void connectToMQTT() {
+  while (!mqttClient.connected()) {
+    Serial.println("Connecting to MQTT...");
+    if (mqttClient.connect("ESP32Client123", AIO_USERNAME, AIO_KEY)) {
+      Serial.println("MQTT connected!");
+      mqttClient.subscribe(MQTT_TOPIC);
+    } else {
+      Serial.print(" failed, rc=");
+      Serial.print(mqttClient.state());
+      delay(2000);
+    }
+  }
+}
 
 // // MQTT Callback Function 
 // void mqttCallback(char* topic, byte* payload, unsigned int length) { 
@@ -171,17 +171,29 @@ void setup()
   sensor.begin();
   actuator.begin();
 
-  std::vector<std::pair<String, int>> plantMappings = restClient.getPlantPinPairs("zone2");
-
+  std::vector<std::pair<String, int>> plantMappings = restClient.getPlantPinPairs("zone4");
+  
+  if (plantMappings.size() == 0) {
+    Serial.println("[ERROR] No plant mapping found!");
+    return;
+  }
+  
   for (size_t i = 0; i < plantMappings.size(); ++i) {
     sensor.addPlant(i, plantMappings[i].second, plantMappings[i].first);
   }
   // mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
   // mqttClient.setCallback(mqttCallback);
 
-  for (int i = 0; i < 4; ++i)
-  {
-    sensor.addPlant(i, SOIL_PINS[i], PLANT_IDS[i]);
+  // for (int i = 0; i < 4; ++i)
+  // {
+  //   sensor.addPlant(i, SOIL_PINS[i], PLANT_IDS[i]);
+  // }
+
+  // Fetch threshold per plant and map to soilPin
+  if (sensor.fetchMoistureThresholdsForEachPlant(plantMappings)) {
+    Serial.println("[OK] Moisture thresholds fetched for each plant.");
+  } else {
+    Serial.println("[WARN] Failed to fetch all moisture thresholds.");
   }
   // connectToMQTT();
 
@@ -220,18 +232,14 @@ void loop()
   // Soil moisture watering logic
   // if (sensor.fetchThresholdsFromAPI()) {
 
-  if (true) {
-    if (sensor.shouldWaterPlants()) {
-      Serial.println("[Watering] Conditions met → PUMP ON");
-      digitalWrite(PUMP_PIN, HIGH);
-      actuator.setPump(true);
-    } else {
-      Serial.println("[Watering] Conditions not met → PUMP OFF");
-      digitalWrite(PUMP_PIN, LOW);
-      actuator.setPump(false);
-    }
+  if (sensor.shouldWater()) {
+    Serial.println("[PUMP] Watering needed → ON");
+    digitalWrite(PUMP_PIN, HIGH);
+    actuator.setPump(true);
   } else {
-    Serial.println("[Watering] Failed to fetch thresholds");
+    Serial.println("[PUMP] Moisture OK → OFF");
+    digitalWrite(PUMP_PIN, LOW);
+    actuator.setPump(false);
   }
 
   // if (!mqttClient.connected()) {

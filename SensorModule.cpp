@@ -160,23 +160,63 @@ bool SensorModule::checkAndTrigger(const String& sensorName, int sensorValue, fl
   return trigger;
 }
 
-bool SensorModule::shouldWaterPlants() {
-  bool anyBelowMin = false;
-  bool allBelowMax = true;
+bool SensorModule::fetchMoistureThresholdsForEachPlant(const std::vector<std::pair<String, int>>& plantPinPairs) {
+  bool success = true;
 
-  Serial.println("Checking all soil moisture sensors...");
+  for (const auto& pair : plantPinPairs) {
+    String plantId = pair.first;
+    int soilPin = pair.second;
 
-  for (int i = 0; i < _numPlants; i++) {
-    int raw = analogRead(plants[i].soilPin);
-    float percent = map(raw, 0, 4095, 100, 0);
+    String url = "https://test-server-owq2.onrender.com/api/v1/plants/" + plantId;
 
-    Serial.printf("Soil Sensor %d → Raw: %d → %.1f%%\n", i + 1, raw, percent);
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      http.begin(url);
+      int httpResponseCode = http.GET();
 
-    if (percent < soilMin) anyBelowMin = true;
-    if (percent > soilMax) allBelowMax = false;
+      if (httpResponseCode == 200) {
+        String payload = http.getString();
+
+        StaticJsonDocument<1024> doc;
+        DeserializationError error = deserializeJson(doc, payload);
+
+        if (!error) {
+          float min = doc["thresholds"]["moisture"]["min"];
+          float max = doc["thresholds"]["moisture"]["max"];
+
+          pinThresholds[soilPin] = {min, max};
+
+          Serial.printf("Fetched moisture threshold for pin %d → Min: %.2f, Max: %.2f\n", soilPin, min, max);
+        } else {
+          Serial.println("JSON parse failed for plant: " + plantId);
+          success = false;
+        }
+      } else {
+        Serial.printf("HTTP error %d fetching plant: %s\n", httpResponseCode, plantId.c_str());
+        success = false;
+      }
+
+      http.end();
+    }
   }
 
-  bool shouldWater = anyBelowMin && allBelowMax;
-  Serial.printf("Watering Decision: %s\n", shouldWater ? "YES → Pump ON" : "NO → Pump OFF");
-  return shouldWater;
+  return success;
+}
+
+
+bool SensorModule::shouldWater() {
+    for (const auto& entry : pinThresholds) {
+        int pin = entry.first;
+        float minThreshold = entry.second.first;
+        float maxThreshold = entry.second.second;
+
+        float currentMoisture = readSoilMoisture(pin);
+        Serial.printf("[Moisture Check] Pin %d → %.2f (Min: %.2f)\n", pin, currentMoisture, minThreshold);
+
+        if (currentMoisture < minThreshold) {
+            Serial.printf("[Watering Needed] Soil moisture at pin %d is below minimum.\n", pin);
+            return true;  // At least one plant needs water
+        }
+    }
+    return false;  // All within range
 }

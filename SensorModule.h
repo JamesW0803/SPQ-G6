@@ -36,7 +36,9 @@ public:
     float readHumidity();
     float readAirQuality();
     float readLightLevel();
-    bool shouldWaterPlants();
+    bool fetchMoistureThresholdsForEachPlant(const std::vector<std::pair<String, int>>& plantPinPairs);
+    std::map<int, std::pair<float, float>> pinThresholds;
+    bool shouldWater();
 
 private:
     struct Plant
@@ -57,7 +59,6 @@ private:
     // float readHumidity();
     // float readAirQuality();
     // float readLightLevel();
-    // bool shouldWaterPlants();
     String getISO8601Time();
 };
 
