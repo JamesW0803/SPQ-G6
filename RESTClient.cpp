@@ -122,13 +122,14 @@ bool RESTClient::sendZoneSensorData(
 }
 
 bool RESTClient::sendActuatorLog(
+    const String &action_name,
     const String &action,
     const String &actuatorId,
     const String &plantId,
     const String &trigger,
+    const String &zone,
     const String &triggerBy,
-    const String &timestamp,
-    const String &action_name
+    const String &timestamp
 ) {
     String endpoint = serverUrl + "/api/v1/logs/action/" + action_name;
 
@@ -148,6 +149,8 @@ bool RESTClient::sendActuatorLog(
     doc["actuatorId"] = actuatorId;
     doc["plantId"] = plantId;
     doc["trigger"] = trigger;
+    doc["zone"] = zone;
+
 
     if (triggerBy != "") {
         doc["triggerBy"] = triggerBy;
@@ -168,7 +171,7 @@ bool RESTClient::sendActuatorLog(
 
     if (httpResponseCode > 0) {
         String response = http.getString();
-        Serial.print("POST success: ");
+        Serial.print("Log action sent successfully, response: ");
         Serial.println(response);
         http.end();
         return true;

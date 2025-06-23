@@ -41,13 +41,14 @@ public:
 
     // POST: Actuator log
     bool sendActuatorLog(
+        const String &action_name,
         const String &action,
         const String &actuatorId,
         const String &plantId,
         const String &trigger,
+        const String &zone,
         const String &triggerBy = "SYSTEM",
-        const String &timestamp = "",
-        const String &action_name = ""
+        const String &timestamp = ""
     );
 
 private:

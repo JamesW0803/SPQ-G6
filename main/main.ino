@@ -94,6 +94,16 @@ void evaluateSensorsAndTrigger() {
   if (airQualityBelow) {
     Serial.println("Air quality bad! Activate actuator.");
     actuator.setFan(true);
+    restClient.sendActuatorLog(
+      "fan",
+      "fan_on",
+      "actuator_401",
+      "plant_FRiG19CeujBo5FS68gve", 
+      "auto",
+      zoneId,
+      "SYSTEM",
+      sensor->getISO8601Time()
+    );
   }else{
     Serial.println("Air quality normal! Turning off actuator.");
     actuator.setFan(false);
@@ -163,7 +173,6 @@ void loop()
     }
   }
 
-  // sensor.sendAllToCloud(SERVER_URL, USER_ID);
   // === 🌱 Build soilMoistureByPin vector ===
   std::vector<std::pair<int, float>> soilMoistureByPin;
   for (int i = 0; i < 4; ++i) {
@@ -175,16 +184,16 @@ void loop()
   String timestamp = sensor->getISO8601Time();
 
   // === ☁️ Send all sensor data to cloud ===
-  restClient.sendZoneSensorData(
-    zoneId,
-    sensor->readTemperature(), 
-    sensor->readHumidity(),
-    sensor->readLightLevel(),
-    sensor->readAirQuality(),
-    soilMoistureByPin,
-    USER_ID,
-    timestamp
-  );
+  // restClient.sendZoneSensorData(
+  //   zoneId,
+  //   sensor->readTemperature(), 
+  //   sensor->readHumidity(),
+  //   sensor->readLightLevel(),
+  //   sensor->readAirQuality(),
+  //   soilMoistureByPin,
+  //   USER_ID,
+  //   timestamp
+  // );
 
   // evaluateSensorsAndTrigger(); 
 
