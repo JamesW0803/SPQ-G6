@@ -5,14 +5,13 @@ RESTClient::RESTClient(const String &serverUrl, bool insecure) {
     this->useInsecure = insecure;
 }
 
-std::vector<std::pair<String, int>> RESTClient::getPlantPinPairs(const String &zoneId) {
-    std::vector<std::pair<String, int>> plantPairs;
-
+std::vector<PlantData> RESTClient::getPlantsByZone(const String &zoneId) {
+    std::vector<PlantData> plantList;
     String endpoint = serverUrl + "/api/v1/zones/" + zoneId + "/plants";
 
     WiFiClientSecure client;
     if (useInsecure) {
-        client.setInsecure();  // Skip TLS certificate validation
+        client.setInsecure();
     }
 
     HTTPClient http;
@@ -22,29 +21,44 @@ std::vector<std::pair<String, int>> RESTClient::getPlantPinPairs(const String &z
     if (httpResponseCode > 0) {
         String response = http.getString();
 
-        StaticJsonDocument<1024> doc;
+        StaticJsonDocument<8192> doc;
         DeserializationError error = deserializeJson(doc, response);
         if (error) {
             Serial.print("JSON parse error: ");
             Serial.println(error.c_str());
             http.end();
-            return plantPairs; // Return empty vector
+            return plantList;
         }
 
-        for (JsonObject plant : doc.as<JsonArray>()) {
-            String plantId = plant["id"].as<String>();
-            int soilPin = plant["soilPin"].as<int>();
-            plantPairs.push_back(std::make_pair(plantId, soilPin));
-        }
+        JsonArray plants = doc["plants"].as<JsonArray>();
+        for (JsonObject plant : plants) {
+            PlantData data;
+            data.plantId = plant["plantId"].as<String>();
+            data.moisturePin = plant["moisturePin"].as<int>();
 
+            data.min_moisture     = plant["thresholds"]["moisture"]["min"].as<float>();
+            data.max_moisture     = plant["thresholds"]["moisture"]["max"].as<float>();
+
+            data.min_temperature  = plant["thresholds"]["temperature"]["min"].as<float>();
+            data.max_temperature = plant["thresholds"]["temperature"]["max"].as<float>();
+
+            data.min_light        = plant["thresholds"]["light"]["min"].as<float>();
+            data.max_light       = plant["thresholds"]["light"]["max"].as<float>();
+
+            data.min_airQuality   = plant["thresholds"]["airQuality"]["min"].as<float>();
+            data.max_airQuality   = plant["thresholds"]["airQuality"]["max"].as<float>();
+
+            plantList.push_back(data);
+        }
     } else {
         Serial.print("HTTP error code: ");
         Serial.println(httpResponseCode);
     }
 
     http.end();
-    return plantPairs;
+    return plantList;
 }
+
 
 bool RESTClient::sendZoneSensorData(
     const String &zoneId,
