@@ -21,20 +21,23 @@ const String USER_ID = "5ZyZcYb6wpdlObgeJiaGZ0ydMbW2";
 #define MQTT_USERNAME "SmartGrow"
 #define MQTT_KEYS ""
 
-// GPIO Definitions
-const uint8_t SOIL_PINS[] = {34, 35, 36, 39};
-const char *PLANT_IDS[] = {
-    "plant_JU4Rj78DEHUM2lNYHzd3",
-    "plant_CyhF06FW5a1KTmCvM0zf",
-    "plant_hG7bPH7Np9WXtDe1zBVE",
-    "plant_iKjnBJcBaGTx6LyCXUy2"
-  };
-
 // Actuator PIN
 const int PUMP_PIN = 25;
 const int FAN_PIN_1 = 27;
 const int FAN_PIN_2 = 18;
 const int LIGHT_PIN = 26;
+
+// Zone ID
+const String zoneId = "zone4";
+
+float min_moisture;
+float min_temperature;
+float min_light;
+float min_airQuality;
+float max_moisture;
+float max_temperature;
+float max_light;
+float max_airQuality;
 
 // WiFi & MQTT Clients
 WiFiClient wifiClient;
@@ -48,8 +51,8 @@ Adafruit_MQTT_Publish publishFeed = Adafruit_MQTT_Publish(&mqtt, MQTT_USERNAME "
 Adafruit_MQTT_Publish feedbackFeed = Adafruit_MQTT_Publish(&mqtt, MQTT_USERNAME "/feeds/group-1.actuator-feedback");
 Adafruit_MQTT_Subscribe subscribeFeed = Adafruit_MQTT_Subscribe(&mqtt, MQTT_USERNAME "/feeds/group-1.actuator-status");
 
-// Sensor Setup
-SensorModule sensor(DHT_PIN, DHT_TYPE, (uint8_t *)SOIL_PINS, 4);
+// Declare Sensor Module object pointer 
+SensorModule* sensor;  // ✅ pointer to SensorModule
 
 // Actuator Setup ActuatorModule(PUMP_PIN,FAN_PIN,LIGHT_PIN)
 ActuatorModule actuator(PUMP_PIN, FAN_PIN_1, FAN_PIN_2, LIGHT_PIN, &publishFeed, &feedbackFeed, &subscribeFeed);
@@ -68,17 +71,17 @@ void connectToWiFi()
 
 // edge control
 void evaluateSensorsAndTrigger() {
-  int lightValue = sensor.readLightLevel();
-  int airQualityValue = sensor.readAirQuality();
-  int tempValue = sensor.readTemperature();
+  int lightValue = sensor->readLightLevel();
+  int airQualityValue = sensor->readAirQuality();
+  int tempValue = sensor->readTemperature();
 
-  if (!sensor.fetchThresholdsFromAPI()) {
+  if (!sensor->fetchThresholdsFromAPI()) {
     Serial.println("Using default thresholds (0)");
   }
 
-  bool lightBelow = sensor.checkAndTrigger("Light", lightValue, sensor.lightMax);
-  bool airQualityBelow = sensor.checkAndTrigger("Air Quality", airQualityValue, sensor.airQualityMax);
-  bool tempBelow= sensor.checkAndTrigger("Temperature", tempValue, sensor.tempMax);
+  bool lightBelow = sensor->checkAndTrigger("Light", lightValue, max_light);
+  bool airQualityBelow = sensor->checkAndTrigger("Air Quality", airQualityValue, max_airQuality);
+  bool tempBelow= sensor->checkAndTrigger("Temperature", tempValue, max_temperature);
 
   if (lightBelow) {
     Serial.println("Light out of range! Activate actuator.");
@@ -96,9 +99,13 @@ void evaluateSensorsAndTrigger() {
     actuator.setFan(false);
   }
 
-  if (tempBelow) {
-      Serial.println("Temperature too low! Activate actuator.");
-
+  if (!tempBelow) {
+      Serial.println("Temperature too high! Activate fan.");
+      actuator.setFan(true);
+    }
+    else{
+      actuator.setFan(false);
+      Serial.println("Temperature normal. Turning off fan.");
     }
 }
 
@@ -107,11 +114,27 @@ void setup()
   Serial.begin(115200);
   connectToWiFi();
   mqtt.subscribe(&subscribeFeed);
-  sensor.begin();
   actuator.begin();
 
   std::vector<PlantData> plants = restClient.getPlantsByZone("zone4");
 
+      // Dynamically build soil pin array
+  std::vector<uint8_t> soilPins;
+  for (const auto& plant : plants) {
+    soilPins.push_back(plant.moisturePin);
+  }
+
+  // Create sensor module with the dynamically built pins
+  sensor = new SensorModule(DHT_PIN, DHT_TYPE, soilPins.data(), soilPins.size());
+  sensor->begin();
+  for (size_t i = 0; i < plants.size(); ++i) {
+    sensor->addPlant(i, plants[i].moisturePin, plants[i].plantId);
+  }
+
+  max_moisture = plants[0].max_moisture;
+  max_temperature = plants[0].max_temperature;
+  max_light = plants[0].max_light;
+  max_airQuality = plants[0].max_airQuality;
   for (const auto& p : plants) {
       Serial.println("Plant ID: " + p.plantId);
       Serial.print("Moisture pin: "); Serial.println(p.moisturePin);
@@ -121,6 +144,7 @@ void setup()
       Serial.print("Air Quality Threshold: "); Serial.print(p.min_airQuality); Serial.print(" - "); Serial.println(p.max_airQuality);
       Serial.println();
   }
+
 }
 
 void loop()
@@ -140,11 +164,33 @@ void loop()
   }
 
   // sensor.sendAllToCloud(SERVER_URL, USER_ID);
-  //  evaluateSensorsAndTrigger();
+  // === 🌱 Build soilMoistureByPin vector ===
+  std::vector<std::pair<int, float>> soilMoistureByPin;
+  for (int i = 0; i < 4; ++i) {
+    float moisture = sensor->readSoilMoisture(sensor->plants[i].soilPin);
+    soilMoistureByPin.push_back(std::make_pair(sensor->plants[i].soilPin, moisture));
+  }
+
+  // === 🕒 Get timestamp ===
+  String timestamp = sensor->getISO8601Time();
+
+  // === ☁️ Send all sensor data to cloud ===
+  restClient.sendZoneSensorData(
+    zoneId,
+    sensor->readTemperature(), 
+    sensor->readHumidity(),
+    sensor->readLightLevel(),
+    sensor->readAirQuality(),
+    soilMoistureByPin,
+    USER_ID,
+    timestamp
+  );
+
+  // evaluateSensorsAndTrigger(); 
 
   // Soil moisture watering logic
-  if (sensor.fetchThresholdsFromAPI()) {
-    if (sensor.shouldWaterPlants()) {
+  if (sensor->fetchThresholdsFromAPI()) {
+    if (sensor->shouldWaterPlants()) {
       Serial.println("[Watering] Conditions met → PUMP ON");
       digitalWrite(PUMP_PIN, HIGH);
       actuator.setPump(true);
@@ -157,5 +203,5 @@ void loop()
     Serial.println("[Watering] Failed to fetch thresholds");
   }
 
-  delay(10000);       // Wait 10s before next loop
+  delay(30000);       // Wait 10s before next loop
 }

@@ -83,6 +83,7 @@ void ActuatorModule::callback(Adafruit_MQTT_Subscribe* subscription) {
 
         // Control fan only if present
         if (fan != nullptr) {
+          
           digitalWrite(fanPin1, strcmp(fan, "ON") == 0 ? HIGH : LOW);
           digitalWrite(fanPin2, strcmp(fan, "ON") == 0 ? HIGH : LOW);
         }

@@ -17,6 +17,13 @@
 class SensorModule
 {
 public:
+    struct Plant
+    {
+        int soilPin;
+        String plantId;
+    };
+
+    static const int MAX_PLANTS = 4;
     SensorModule(uint8_t dhtPin, uint8_t dhtType, uint8_t *soilPins, int numPlants);
     float lightMin = 0;
     float lightMax = 0;
@@ -37,17 +44,10 @@ public:
     float readAirQuality();
     float readLightLevel();
     bool shouldWaterPlants();
+    Plant plants[MAX_PLANTS];
+    String getISO8601Time();
 
 private:
-    struct Plant
-    {
-        int soilPin;
-        String plantId;
-    };
-
-    static const int MAX_PLANTS = 4;
-    Plant plants[MAX_PLANTS];
-
     DHT dht;
     uint8_t *_soilPins;
     int _numPlants;
@@ -58,7 +58,7 @@ private:
     // float readAirQuality();
     // float readLightLevel();
     // bool shouldWaterPlants();
-    String getISO8601Time();
+
 };
 
 #endif

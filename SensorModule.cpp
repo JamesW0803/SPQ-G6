@@ -36,26 +36,34 @@ void SensorModule::addPlant(int plantIndex, int soilPin, const String &plantId)
 float SensorModule::readSoilMoisture(int pin)
 {
   return analogRead(pin);
+  // return 42.0;
 }
 
 float SensorModule::readAirQuality()
 {
   return analogRead(MQ2_PIN);
+  // return 42.0; 
 }
 
 float SensorModule::readLightLevel()
 {
   return analogRead(LDR_PIN);
+    // return 42.0;
+
 }
 
 float SensorModule::readTemperature()
 {
   return dht.readTemperature();
+    // return 42.0;
+
 }
 
 float SensorModule::readHumidity()
 {
   return dht.readHumidity();
+    // return 42.0;
+
 }
 
 String SensorModule::getISO8601Time()

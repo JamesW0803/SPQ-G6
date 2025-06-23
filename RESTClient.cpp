@@ -70,7 +70,7 @@ bool RESTClient::sendZoneSensorData(
     const String &userId,
     const String &timestamp
 ) {
-    String endpoint = serverUrl + "/api/v1/sensor-data/";
+    String endpoint = serverUrl + "/api/v1/sensor-data";
 
     WiFiClientSecure client;
     if (useInsecure) {
@@ -86,20 +86,22 @@ bool RESTClient::sendZoneSensorData(
     doc["zoneId"] = zoneId;
 
     JsonObject zoneSensors = doc.createNestedObject("zoneSensors");
-    zoneSensors["humidity"] = humidity;
-    zoneSensors["temp"] = temperature;
-    zoneSensors["light"] = light;
-    zoneSensors["airQuality"] = airQuality;
+    zoneSensors["humidity"] = isnan(humidity) ? 0.0f : humidity;
+    zoneSensors["temp"] = isnan(temperature) ? 0.0f : temperature;
+    zoneSensors["light"] = isnan(light) ? 0.0f : light;;
+    zoneSensors["airQuality"] = isnan(airQuality) ? 0.0f : airQuality;
 
     JsonArray soilArray = doc.createNestedArray("soilMoistureByPin");
     for (const auto &pair : soilMoistureByPin) {
         JsonObject entry = soilArray.createNestedObject();
         entry["pin"] = pair.first;
-        entry["soilMoisture"] = pair.second;
+        entry["soilMoisture"] = isnan(pair.second) ? 0.0f : pair.second;
     }
 
     if (userId != "") doc["userId"] = userId;
     if (timestamp != "") doc["timestamp"] = timestamp;
+
+
 
     String requestBody;
     serializeJson(doc, requestBody);
@@ -107,7 +109,7 @@ bool RESTClient::sendZoneSensorData(
     int httpResponseCode = http.POST(requestBody);
 
     if (httpResponseCode > 0) {
-        Serial.print("Zone sensor data sent. HTTP code: ");
+        Serial.print("Zone sensor data sent");
         Serial.println(httpResponseCode);
         http.end();
         return true;
@@ -128,7 +130,7 @@ bool RESTClient::sendActuatorLog(
     const String &timestamp,
     const String &action_name
 ) {
-    String endpoint = serverUrl + "/api/v1//logs/action/" + action_name; // Adjust path if needed
+    String endpoint = serverUrl + "/api/v1/logs/action/" + action_name;
 
     WiFiClientSecure client;
     if (useInsecure) {
@@ -139,21 +141,28 @@ bool RESTClient::sendActuatorLog(
     http.begin(client, endpoint);
     http.addHeader("Content-Type", "application/json");
 
-    // Prepare JSON payload
-    StaticJsonDocument<256> doc;
+    // Create the JSON payload
+    StaticJsonDocument<512> doc;
+
     doc["action"] = action;
     doc["actuatorId"] = actuatorId;
     doc["plantId"] = plantId;
     doc["trigger"] = trigger;
+
     if (triggerBy != "") {
         doc["triggerBy"] = triggerBy;
     }
+
     if (timestamp != "") {
         doc["timestamp"] = timestamp;
     }
 
     String requestBody;
     serializeJson(doc, requestBody);
+
+    // Optional: Print the request payload for debugging
+    Serial.print("Sending Actuator Log: ");
+    Serial.println(requestBody);
 
     int httpResponseCode = http.POST(requestBody);
 
