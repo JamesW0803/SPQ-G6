@@ -1,16 +1,19 @@
 #include "RESTClient.h"
 
-RESTClient::RESTClient(const String &serverUrl, bool insecure) {
+RESTClient::RESTClient(const String &serverUrl, bool insecure)
+{
     this->serverUrl = serverUrl;
     this->useInsecure = insecure;
 }
 
-std::vector<PlantData> RESTClient::getPlantsByZone(const String &zoneId) {
+std::vector<PlantData> RESTClient::getPlantsByZone(const String &zoneId)
+{
     std::vector<PlantData> plantList;
     String endpoint = serverUrl + "/api/v1/zones/" + zoneId + "/plants";
 
     WiFiClientSecure client;
-    if (useInsecure) {
+    if (useInsecure)
+    {
         client.setInsecure();
     }
 
@@ -18,12 +21,14 @@ std::vector<PlantData> RESTClient::getPlantsByZone(const String &zoneId) {
     http.begin(client, endpoint);
 
     int httpResponseCode = http.GET();
-    if (httpResponseCode > 0) {
+    if (httpResponseCode > 0)
+    {
         String response = http.getString();
 
         StaticJsonDocument<8192> doc;
         DeserializationError error = deserializeJson(doc, response);
-        if (error) {
+        if (error)
+        {
             Serial.print("JSON parse error: ");
             Serial.println(error.c_str());
             http.end();
@@ -31,26 +36,29 @@ std::vector<PlantData> RESTClient::getPlantsByZone(const String &zoneId) {
         }
 
         JsonArray plants = doc["plants"].as<JsonArray>();
-        for (JsonObject plant : plants) {
+        for (JsonObject plant : plants)
+        {
             PlantData data;
             data.plantId = plant["plantId"].as<String>();
             data.moisturePin = plant["moisturePin"].as<int>();
 
-            data.min_moisture     = plant["thresholds"]["moisture"]["min"].as<float>();
-            data.max_moisture     = plant["thresholds"]["moisture"]["max"].as<float>();
+            data.min_moisture = plant["thresholds"]["moisture"]["min"].as<float>();
+            data.max_moisture = plant["thresholds"]["moisture"]["max"].as<float>();
 
-            data.min_temperature  = plant["thresholds"]["temperature"]["min"].as<float>();
+            data.min_temperature = plant["thresholds"]["temperature"]["min"].as<float>();
             data.max_temperature = plant["thresholds"]["temperature"]["max"].as<float>();
 
-            data.min_light        = plant["thresholds"]["light"]["min"].as<float>();
-            data.max_light       = plant["thresholds"]["light"]["max"].as<float>();
+            data.min_light = plant["thresholds"]["light"]["min"].as<float>();
+            data.max_light = plant["thresholds"]["light"]["max"].as<float>();
 
-            data.min_airQuality   = plant["thresholds"]["airQuality"]["min"].as<float>();
-            data.max_airQuality   = plant["thresholds"]["airQuality"]["max"].as<float>();
+            data.min_airQuality = plant["thresholds"]["airQuality"]["min"].as<float>();
+            data.max_airQuality = plant["thresholds"]["airQuality"]["max"].as<float>();
 
             plantList.push_back(data);
         }
-    } else {
+    }
+    else
+    {
         Serial.print("HTTP error code: ");
         Serial.println(httpResponseCode);
     }
@@ -58,7 +66,6 @@ std::vector<PlantData> RESTClient::getPlantsByZone(const String &zoneId) {
     http.end();
     return plantList;
 }
-
 
 bool RESTClient::sendZoneSensorData(
     const String &zoneId,
@@ -68,12 +75,13 @@ bool RESTClient::sendZoneSensorData(
     float airQuality,
     const std::vector<std::pair<int, float>> &soilMoistureByPin,
     const String &userId,
-    const String &timestamp
-) {
+    const String &timestamp)
+{
     String endpoint = serverUrl + "/api/v1/sensor-data";
 
     WiFiClientSecure client;
-    if (useInsecure) {
+    if (useInsecure)
+    {
         client.setInsecure();
     }
 
@@ -88,32 +96,43 @@ bool RESTClient::sendZoneSensorData(
     JsonObject zoneSensors = doc.createNestedObject("zoneSensors");
     zoneSensors["humidity"] = isnan(humidity) ? 0.0f : humidity;
     zoneSensors["temp"] = isnan(temperature) ? 0.0f : temperature;
-    zoneSensors["light"] = isnan(light) ? 0.0f : light;;
+    zoneSensors["light"] = isnan(light) ? 0.0f : light;
+    ;
     zoneSensors["airQuality"] = isnan(airQuality) ? 0.0f : airQuality;
 
     JsonArray soilArray = doc.createNestedArray("soilMoistureByPin");
-    for (const auto &pair : soilMoistureByPin) {
+    for (const auto &pair : soilMoistureByPin)
+    {
         JsonObject entry = soilArray.createNestedObject();
         entry["pin"] = pair.first;
-        entry["soilMoisture"] = isnan(pair.second) ? 0.0f : pair.second;
+
+        // Convert raw ADC to percentage (100% = very wet, 0% = very dry)
+        int rawValue = pair.second;
+        float moisturePercent = map(rawValue, 3900, 1200, 0, 100);
+        moisturePercent = constrain(moisturePercent, 0, 100);
+
+        entry["soilMoisture"] = moisturePercent;
     }
 
-    if (userId != "") doc["userId"] = userId;
-    if (timestamp != "") doc["timestamp"] = timestamp;
-
-
+    if (userId != "")
+        doc["userId"] = userId;
+    if (timestamp != "")
+        doc["timestamp"] = timestamp;
 
     String requestBody;
     serializeJson(doc, requestBody);
 
     int httpResponseCode = http.POST(requestBody);
 
-    if (httpResponseCode > 0) {
+    if (httpResponseCode > 0)
+    {
         Serial.print("Zone sensor data sent");
         Serial.println(httpResponseCode);
         http.end();
         return true;
-    } else {
+    }
+    else
+    {
         Serial.print("Failed to send zone sensor data. Code: ");
         Serial.println(httpResponseCode);
         http.end();
@@ -129,12 +148,13 @@ bool RESTClient::sendActuatorLog(
     const String &trigger,
     const String &zone,
     const String &triggerBy,
-    const String &timestamp
-) {
+    const String &timestamp)
+{
     String endpoint = serverUrl + "/api/v1/logs/action/" + action_name;
 
     WiFiClientSecure client;
-    if (useInsecure) {
+    if (useInsecure)
+    {
         client.setInsecure();
     }
 
@@ -151,12 +171,13 @@ bool RESTClient::sendActuatorLog(
     doc["trigger"] = trigger;
     doc["zone"] = zone;
 
-
-    if (triggerBy != "") {
+    if (triggerBy != "")
+    {
         doc["triggerBy"] = triggerBy;
     }
 
-    if (timestamp != "") {
+    if (timestamp != "")
+    {
         doc["timestamp"] = timestamp;
     }
 
@@ -169,13 +190,16 @@ bool RESTClient::sendActuatorLog(
 
     int httpResponseCode = http.POST(requestBody);
 
-    if (httpResponseCode > 0) {
+    if (httpResponseCode > 0)
+    {
         String response = http.getString();
         Serial.print("Log action sent successfully, response: ");
         Serial.println(response);
         http.end();
         return true;
-    } else {
+    }
+    else
+    {
         Serial.print("POST failed, error: ");
         Serial.println(httpResponseCode);
         http.end();

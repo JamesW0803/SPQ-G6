@@ -35,6 +35,7 @@ class ActuatorModule {
     void sendFeedback(const String &action, const String &triggeredBy, const String &source, const String &zone, bool success);
     // void setFan2(bool state);
     void setLight(bool state);
+    String getISO8601Time();
 };
 
 #endif

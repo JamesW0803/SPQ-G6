@@ -69,13 +69,16 @@ float SensorModule::readHumidity()
 String SensorModule::getISO8601Time()
 {
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo))
-  {
-    return "1970-01-01T00:00:00Z";
-  }
+  time_t now;
+
+  time(&now);                   // Get current time as time_t
+  now += 8 * 3600;              // Add 8 hours for UTC+8
+  gmtime_r(&now, &timeinfo);    // Convert to UTC+8 time
+
   char buffer[30];
   strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
-  Serial.println("Timestamp: " + String(buffer));
+
+  Serial.println("Timestamp (UTC+8): " + String(buffer));
   return String(buffer);
 }
 
