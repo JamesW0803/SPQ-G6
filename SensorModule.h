@@ -6,7 +6,9 @@
 #include <DHT.h>
 #include <Arduino.h>
 #include <time.h>
-#include <ArduinoJson.h>
+#include <ArduinoJson.h> 
+#include <utility> // for std::pair
+#include "RESTClient.h"
 
 // Sensor Pin Configuration
 #define DHT_PIN 16
@@ -43,7 +45,7 @@ public:
     float readHumidity();
     float readAirQuality();
     float readLightLevel();
-    bool shouldWaterPlants();
+    bool shouldWater(const std::vector<PlantData>& plantList);
     Plant plants[MAX_PLANTS];
     String getISO8601Time();
 

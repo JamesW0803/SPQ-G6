@@ -56,6 +56,7 @@ SensorModule* sensor;  // ✅ pointer to SensorModule
 
 // Actuator Setup ActuatorModule(PUMP_PIN,FAN_PIN,LIGHT_PIN)
 ActuatorModule actuator(PUMP_PIN, FAN_PIN_1, FAN_PIN_2, LIGHT_PIN, &publishFeed, &feedbackFeed, &subscribeFeed);
+std::vector<PlantData> plants;
 
 void connectToWiFi()
 {
@@ -126,9 +127,8 @@ void setup()
   mqtt.subscribe(&subscribeFeed);
   actuator.begin();
 
-  std::vector<PlantData> plants = restClient.getPlantsByZone("zone4");
+  plants = restClient.getPlantsByZone("zone4");
 
-      // Dynamically build soil pin array
   std::vector<uint8_t> soilPins;
   for (const auto& plant : plants) {
     soilPins.push_back(plant.moisturePin);
@@ -197,20 +197,25 @@ void loop()
 
   // evaluateSensorsAndTrigger(); 
 
-  // Soil moisture watering logic
-  if (sensor->fetchThresholdsFromAPI()) {
-    if (sensor->shouldWaterPlants()) {
-      Serial.println("[Watering] Conditions met → PUMP ON");
-      digitalWrite(PUMP_PIN, HIGH);
-      actuator.setPump(true);
-    } else {
-      Serial.println("[Watering] Conditions not met → PUMP OFF");
-      digitalWrite(PUMP_PIN, LOW);
-      actuator.setPump(false);
+  if (sensor.shouldWater(plants)) {
+    Serial.println("[PUMP] Watering needed → ON");
+    digitalWrite(PUMP_PIN, HIGH);
+    actuator.setPump(true);
+    // Keep checking every 2 seconds (adjust if needed)
+    while (sensor.shouldWater(plantMappings)) {
+      Serial.println("[PUMP] Still dry... continuing watering");
+      delay(2000);  // Wait 2s before rechecking moisture
     }
+
+    // Moisture OK now — stop pump
+    Serial.println("[PUMP] Moisture OK → STOP WATERING");
+    digitalWrite(PUMP_PIN, LOW);
+    actuator.setPump(false);
   } else {
-    Serial.println("[Watering] Failed to fetch thresholds");
+    Serial.println("[PUMP] Moisture OK → OFF");
+    digitalWrite(PUMP_PIN, LOW);
+    actuator.setPump(false);
   }
 
-  delay(30000);       // Wait 10s before next loop
+  delay(10000);       // Wait 10s before next loop
 }
