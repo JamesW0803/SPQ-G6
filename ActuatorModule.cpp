@@ -109,9 +109,9 @@ void ActuatorModule::callback(Adafruit_MQTT_Subscribe *subscription)
       digitalWrite(lightPin, strcmp(light, "ON") == 0 ? HIGH : LOW);
       sendFeedback(
           String("light ") + (strcmp(light, "ON") == 0 ? "ON" : "OFF"),
-          "SYSTEM",
+          "user",
           "manual",
-          "zone1",
+          "zone3",
           true);
     }
 
@@ -122,9 +122,9 @@ void ActuatorModule::callback(Adafruit_MQTT_Subscribe *subscription)
       digitalWrite(fanPin2, strcmp(fan, "ON") == 0 ? HIGH : LOW);
       sendFeedback(
           String("fan ") + (strcmp(fan, "ON") == 0 ? "ON" : "OFF"),
-          "SYSTEM",
+          "user",
           "manual",
-          "zone1",
+          "zone3",
           true);
     }
 
@@ -134,9 +134,9 @@ void ActuatorModule::callback(Adafruit_MQTT_Subscribe *subscription)
       digitalWrite(pumpPin, strcmp(pump, "ON") == 0 ? HIGH : LOW);
       sendFeedback(
           String("pump ") + (strcmp(pump, "ON") == 0 ? "ON" : "OFF"),
-          "SYSTEM",
+          "user",
           "manual",
-          "zone1",
+          "zone3",
           true);
     }
   }
@@ -149,7 +149,7 @@ void ActuatorModule::setPump(bool state)
       String("pump ") + (state ? "ON" : "OFF"),
       "SYSTEM",
       "auto",
-      "zone1",
+      "zone3",
       true);
 }
 
@@ -161,7 +161,7 @@ void ActuatorModule::setFan(bool state)
       String("fan ") + (state ? "ON" : "OFF"),
       "SYSTEM",
       "auto",
-      "zone1",
+      "zone3",
       true);
 }
 
@@ -172,6 +172,6 @@ void ActuatorModule::setLight(bool state)
       String("light ") + (state ? "ON" : "OFF"),
       "SYSTEM",
       "auto",
-      "zone1",
+      "zone3",
       true);
 }

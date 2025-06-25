@@ -9,6 +9,9 @@
 #include "RESTClient.h"
 #include "secrets.h"
 
+// Zone ID
+const String zoneId = "zone3";
+
 // WIFI Configuration
 const char* SSID = "Cynex@2.4GHz";
 const char* PASSWORD = "cyber@cynex";
@@ -26,9 +29,7 @@ const int PUMP_PIN = 25;
 const int FAN_PIN_1 = 27;
 const int FAN_PIN_2 = 18;
 const int LIGHT_PIN = 26;
-
-// Zone ID
-const String zoneId = "zone1";
+const int LED_PIN = 23;
 
 float min_moisture;
 float min_temperature;
@@ -43,13 +44,13 @@ float max_airQuality;
 WiFiClient wifiClient;
 Adafruit_MQTT_Client mqtt(&wifiClient, MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_KEYS);
 
+// MQTT Publish and Subscribe feeds
+Adafruit_MQTT_Publish publishFeed = Adafruit_MQTT_Publish(&mqtt, MQTT_USERNAME "/feeds/group-3.actuator-status");
+Adafruit_MQTT_Publish feedbackFeed = Adafruit_MQTT_Publish(&mqtt, MQTT_USERNAME "/feeds/group-3.actuator-feedback");
+Adafruit_MQTT_Subscribe subscribeFeed = Adafruit_MQTT_Subscribe(&mqtt, MQTT_USERNAME "/feeds/group-3.actuator-status");
+
 // Initialize RESTClient
 RESTClient restClient(SERVER_URL, true);
-
-// MQTT Publish and Subscribe feeds
-Adafruit_MQTT_Publish publishFeed = Adafruit_MQTT_Publish(&mqtt, MQTT_USERNAME "/feeds/group-1.actuator-status");
-Adafruit_MQTT_Publish feedbackFeed = Adafruit_MQTT_Publish(&mqtt, MQTT_USERNAME "/feeds/group-1.actuator-feedback");
-Adafruit_MQTT_Subscribe subscribeFeed = Adafruit_MQTT_Subscribe(&mqtt, MQTT_USERNAME "/feeds/group-1.actuator-status");
 
 // Declare Sensor Module object pointer
 SensorModule* sensor;  // ✅ pointer to SensorModule
@@ -74,10 +75,6 @@ void evaluateSensorsAndTrigger() {
   int airQualityValue = sensor->readAirQuality();
   int tempValue = sensor->readTemperature();
 
-  if (!sensor->fetchThresholdsFromAPI()) {
-    Serial.println("Using default thresholds (0)");
-  }
-
   bool lightBelow = sensor->checkAndTrigger("Light", lightValue, max_light);
   bool airQualityBelow = sensor->checkAndTrigger("Air Quality", airQualityValue, max_airQuality);
   bool tempBelow = sensor->checkAndTrigger("Temperature", tempValue, max_temperature);
@@ -93,15 +90,6 @@ void evaluateSensorsAndTrigger() {
   if (airQualityBelow) {
     Serial.println("Air quality bad! Activate actuator.");
     actuator.setFan(true);
-    restClient.sendActuatorLog(
-      "fan",
-      "fan_on",
-      "actuator_401",
-      "plant_FRiG19CeujBo5FS68gve",
-      "auto",
-      zoneId,
-      "SYSTEM",
-      sensor->getISO8601Time());
   } else {
     Serial.println("Air quality normal! Turning off actuator.");
     actuator.setFan(false);
@@ -117,21 +105,13 @@ void evaluateSensorsAndTrigger() {
 }
 
 void setup() {
+  pinMode(LED_PIN, OUTPUT);
   Serial.begin(115200);
   connectToWiFi();
   mqtt.subscribe(&subscribeFeed);
   actuator.begin();
 
-  Serial.println("Hardcode pump on");
-  digitalWrite(PUMP_PIN, HIGH);
-  actuator.setPump(true);
-  delay(5000);
-  Serial.println("Hardcode pump off");
-  digitalWrite(PUMP_PIN, LOW);
-  actuator.setPump(false);
-  delay(5000);
-
-  plants = restClient.getPlantsByZone("zone1");
+  plants = restClient.getPlantsByZone(zoneId);
 
   std::vector<uint8_t> soilPins;
   for (const auto& plant : plants) {
@@ -145,35 +125,50 @@ void setup() {
     sensor->addPlant(i, plants[i].moisturePin, plants[i].plantId);
   }
 
-  max_moisture = plants[0].max_moisture;
-  max_temperature = plants[0].max_temperature;
-  max_light = plants[0].max_light;
-  max_airQuality = plants[0].max_airQuality;
-  for (const auto& p : plants) {
-    Serial.println("Plant ID: " + p.plantId);
-    Serial.print("Moisture pin: ");
-    Serial.println(p.moisturePin);
-    Serial.print("Moisture Threshold: ");
-    Serial.print(p.min_moisture);
-    Serial.print(" - ");
-    Serial.println(p.max_moisture);
-    Serial.print("Temperature Threshold: ");
-    Serial.print(p.min_temperature);
-    Serial.print(" - ");
-    Serial.println(p.max_temperature);
-    Serial.print("Light Threshold: ");
-    Serial.print(p.min_light);
-    Serial.print(" - ");
-    Serial.println(p.max_light);
-    Serial.print("Air Quality Threshold: ");
-    Serial.print(p.min_airQuality);
-    Serial.print(" - ");
-    Serial.println(p.max_airQuality);
-    Serial.println();
+  if(plants.size() > 0){
+    max_moisture = plants[0].max_moisture;
+    max_temperature = plants[0].max_temperature;
+    max_light = plants[0].max_light;
+    max_airQuality = plants[0].max_airQuality;
+    for (const auto& p : plants) {
+      Serial.println("Plant ID: " + p.plantId);
+      Serial.print("Moisture pin: ");
+      Serial.println(p.moisturePin);
+      Serial.print("Moisture Threshold: ");
+      Serial.print(p.min_moisture);
+      Serial.print(" - ");
+      Serial.println(p.max_moisture);
+      Serial.print("Temperature Threshold: ");
+      Serial.print(p.min_temperature);
+      Serial.print(" - ");
+      Serial.println(p.max_temperature);
+      Serial.print("Light Threshold: ");
+      Serial.print(p.min_light);
+      Serial.print(" - ");
+      Serial.println(p.max_light);
+      Serial.print("Air Quality Threshold: ");
+      Serial.print(p.min_airQuality);
+      Serial.print(" - ");
+      Serial.println(p.max_airQuality);
+      Serial.println();
+    }
+  }
+
+  for(int i = 0; i < 3 ; i++){
+    digitalWrite(LED_PIN, HIGH);
+    delay(500);
+    digitalWrite(LED_PIN, LOW);
+    delay(500);
   }
 }
 
 void loop() {
+  for(int i = 0; i < 3 ; i++){
+    digitalWrite(LED_PIN, HIGH);
+    delay(500);
+    digitalWrite(LED_PIN, LOW);
+    delay(500);
+  }
   if (!mqtt.connected()) {
     MqttModule::connectToMqtt(mqtt);
   }
@@ -190,7 +185,7 @@ void loop() {
 
   // === 🌱 Build soilMoistureByPin vector ===
   std::vector<std::pair<int, float>> soilMoistureByPin;
-  for (int i = 0; i < 4; ++i) {
+  for (int i = 0; i < plants.size(); ++i) {
     float moisture = sensor->readSoilMoisture(sensor->plants[i].soilPin);
     soilMoistureByPin.push_back(std::make_pair(sensor->plants[i].soilPin, moisture));
   }
@@ -218,7 +213,7 @@ void loop() {
     // Now check soil condition again
     if (sensor->shouldWater(plants)) {
       Serial.println("[CHECK] Still needs water. Keeping pump ON.");
-      actuator.setPump(true);
+      // actuator.setPump(true);
     } else {
       Serial.println("[CHECK] Moisture OK now. Turning pump OFF.");
       actuator.setPump(false);
@@ -240,5 +235,5 @@ void loop() {
     actuator.setPump(false);
   }
 
-  delay(60000);  // Wait 10s before next loop
+  delay(60000);  // Wait 60s before next loop
 }
