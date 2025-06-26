@@ -54,13 +54,6 @@ private:
     uint8_t *_soilPins;
     int _numPlants;
 
-    // float readSoilMoisture(int pin);
-    // float readTemperature();
-    // float readHumidity();
-    // float readAirQuality();
-    // float readLightLevel();
-    // bool shouldWaterPlants();
-
 };
 
 #endif

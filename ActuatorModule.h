@@ -29,12 +29,11 @@ class ActuatorModule {
       Adafruit_MQTT_Subscribe* subscribe
 );
     void begin();
-    void setPump(bool state);
-    void setFan(bool state);
+    void setPump(bool state, bool system = true);
+    void setFan(bool state, bool system = true);
     void callback(Adafruit_MQTT_Subscribe* subscription);
     void sendFeedback(const String &action, const String &triggeredBy, const String &source, const String &zone, bool success);
-    // void setFan2(bool state);
-    void setLight(bool state);
+    void setLight(bool state, bool system = true);
     String getISO8601Time();
 };
 

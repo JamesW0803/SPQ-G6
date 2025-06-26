@@ -106,72 +106,70 @@ void ActuatorModule::callback(Adafruit_MQTT_Subscribe *subscription)
 
     if (light != nullptr)
     {
-      digitalWrite(lightPin, strcmp(light, "ON") == 0 ? HIGH : LOW);
-      sendFeedback(
-          String("light ") + (strcmp(light, "ON") == 0 ? "ON" : "OFF"),
-          "user",
-          "manual",
-          "zone3",
-          true);
+      setLight(strcmp(light, "ON") == 0, false);
+      delay(5000);
     }
 
     if (fan != nullptr)
     {
-
-      digitalWrite(fanPin1, strcmp(fan, "ON") == 0 ? HIGH : LOW);
-      digitalWrite(fanPin2, strcmp(fan, "ON") == 0 ? HIGH : LOW);
-      sendFeedback(
-          String("fan ") + (strcmp(fan, "ON") == 0 ? "ON" : "OFF"),
-          "user",
-          "manual",
-          "zone3",
-          true);
+      setFan(strcmp(fan, "ON") == 0, false);
+      delay(5000);
     }
 
     if (pump != nullptr)
     {
-
-      digitalWrite(pumpPin, strcmp(pump, "ON") == 0 ? HIGH : LOW);
-      sendFeedback(
-          String("pump ") + (strcmp(pump, "ON") == 0 ? "ON" : "OFF"),
-          "user",
-          "manual",
-          "zone3",
-          true);
+      setPump(strcmp(pump, "ON") == 0, false);
+      delay(5000);
     }
   }
 }
 
-void ActuatorModule::setPump(bool state)
+void ActuatorModule::setPump(bool state, bool system)
 {
+  const bool currentState = digitalRead(pumpPin) == HIGH ? true : false;
+  if( currentState == state ) {
+    Serial.println("Pump is already in the desired state. No action taken.");
+    return;
+  }
   digitalWrite(pumpPin, state ? HIGH : LOW);
   sendFeedback(
       String("pump ") + (state ? "ON" : "OFF"),
-      "SYSTEM",
-      "auto",
-      "zone3",
+      system ? "SYSTEM" : "USER",
+      system ? "auto" : "manual",
+      "zone1",
       true);
 }
 
-void ActuatorModule::setFan(bool state)
+void ActuatorModule::setFan(bool state, bool system)
 {
+  const bool currentState = digitalRead(fanPin1) == HIGH ? true : false;
+  const bool currentState2 = digitalRead(fanPin2) == HIGH ? true : false;
+  if( currentState == state && currentState2 == state ) {
+    Serial.println("Fan is already in the desired state. No action taken.");
+    return;
+  }
   digitalWrite(fanPin1, state ? HIGH : LOW);
   digitalWrite(fanPin2, state ? HIGH : LOW);
   sendFeedback(
       String("fan ") + (state ? "ON" : "OFF"),
-      "SYSTEM",
-      "auto",
-      "zone3",
+      system ? "SYSTEM" : "USER",
+      system ? "auto" : "manual",
+      "zone1",
       true);
 }
 
-void ActuatorModule::setLight(bool state)
+void ActuatorModule::setLight(bool state, bool system)
 {
+  const bool currentState = digitalRead(lightPin) == HIGH ? true : false;
+  if( currentState == state ) {
+    Serial.println("Light is already in the desired state. No action taken.");
+    return;
+  }
   digitalWrite(lightPin, state ? HIGH : LOW);
   sendFeedback(
       String("light ") + (state ? "ON" : "OFF"),
-      "SYSTEM",
-      "auto",
-      "zone3",
+      system ? "SYSTEM" : "USER",
+      system ? "auto" : "manual",
+      "zone1",
       true);
 }

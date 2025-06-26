@@ -10,7 +10,7 @@
 #include "secrets.h"
 
 // Zone ID
-const String zoneId = "zone3";
+const String zoneId = "zone1";
 
 // WIFI Configuration
 const char* SSID = "Cynex@2.4GHz";
@@ -45,15 +45,15 @@ WiFiClient wifiClient;
 Adafruit_MQTT_Client mqtt(&wifiClient, MQTT_SERVER, MQTT_PORT, MQTT_USERNAME, MQTT_KEYS);
 
 // MQTT Publish and Subscribe feeds
-Adafruit_MQTT_Publish publishFeed = Adafruit_MQTT_Publish(&mqtt, MQTT_USERNAME "/feeds/group-3.actuator-status");
-Adafruit_MQTT_Publish feedbackFeed = Adafruit_MQTT_Publish(&mqtt, MQTT_USERNAME "/feeds/group-3.actuator-feedback");
-Adafruit_MQTT_Subscribe subscribeFeed = Adafruit_MQTT_Subscribe(&mqtt, MQTT_USERNAME "/feeds/group-3.actuator-status");
+Adafruit_MQTT_Publish publishFeed = Adafruit_MQTT_Publish(&mqtt, MQTT_USERNAME "/feeds/group-1.actuator-status");
+Adafruit_MQTT_Publish feedbackFeed = Adafruit_MQTT_Publish(&mqtt, MQTT_USERNAME "/feeds/group-1.actuator-feedback");
+Adafruit_MQTT_Subscribe subscribeFeed = Adafruit_MQTT_Subscribe(&mqtt, MQTT_USERNAME "/feeds/group-1.actuator-status");
 
 // Initialize RESTClient
 RESTClient restClient(SERVER_URL, true);
 
-// Declare Sensor Module object pointer
-SensorModule* sensor;  // ✅ pointer to SensorModule
+// Declare pointer to SensorModule
+SensorModule* sensor;  
 
 // Actuator Setup ActuatorModule(PUMP_PIN,FAN_PIN,LIGHT_PIN)
 ActuatorModule actuator(PUMP_PIN, FAN_PIN_1, FAN_PIN_2, LIGHT_PIN, &publishFeed, &feedbackFeed, &subscribeFeed);
@@ -81,25 +81,25 @@ void evaluateSensorsAndTrigger() {
 
   if (lightBelow) {
     Serial.println("Light out of range! Activate actuator.");
-    actuator.setLight(true);
+    actuator.setLight(true, true);
   } else {
     Serial.println("Light normal. Turning off grow light.");
-    actuator.setLight(false);
+    actuator.setLight(false, true);
   }
 
   if (airQualityBelow) {
     Serial.println("Air quality bad! Activate actuator.");
-    actuator.setFan(true);
+    actuator.setFan(true, true);
   } else {
     Serial.println("Air quality normal! Turning off actuator.");
-    actuator.setFan(false);
+    actuator.setFan(false, true);
   }
 
   if (!tempBelow) {
     Serial.println("Temperature too high! Activate fan.");
-    actuator.setFan(true);
+    actuator.setFan(true, true);
   } else {
-    actuator.setFan(false);
+    actuator.setFan(false, true);
     Serial.println("Temperature normal. Turning off fan.");
   }
 }
@@ -208,32 +208,32 @@ void loop() {
 
   if (digitalRead(PUMP_PIN) == HIGH) {
     Serial.println("[CHECK] Pump is currently ON MANUALLY. Waiting 5 seconds...");
-    delay(5000);  // Wait 5 seconds
 
     // Now check soil condition again
     if (sensor->shouldWater(plants)) {
       Serial.println("[CHECK] Still needs water. Keeping pump ON.");
-      // actuator.setPump(true);
     } else {
       Serial.println("[CHECK] Moisture OK now. Turning pump OFF.");
-      actuator.setPump(false);
+      actuator.setPump(false, true);
     }
   } else if (sensor->shouldWater(plants)) {
     Serial.println("[PUMP] Watering needed → ON");
-    actuator.setPump(true);
+    actuator.setPump(true, true);
     // Keep checking every 5 seconds (adjust if needed)
-    while (sensor->shouldWater(plants)) {
+    int i = 0;
+    while (sensor->shouldWater(plants) && i < 3) {
       Serial.println("[PUMP] Still dry... continuing watering");
-      delay(5000);  // Wait 2s before rechecking moisture
+      delay(5000);  // Wait 5s before rechecking moisture
+      i = i + 1;
     }
 
     // Moisture OK now — stop pump
     Serial.println("[PUMP] Moisture OK → STOP WATERING");
-    actuator.setPump(false);
+    actuator.setPump(false, true);
   } else {
     Serial.println("[PUMP] Moisture OK → OFF");
-    actuator.setPump(false);
+    actuator.setPump(false, true);
   }
 
-  delay(60000);  // Wait 60s before next loop
+  delay(30000);  // Wait 30s before next loop
 }
