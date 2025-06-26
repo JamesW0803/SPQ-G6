@@ -8,7 +8,8 @@
 #include <ArduinoJson.h>
 #include "SensorModule.h"
 
-class ActuatorModule {
+class ActuatorModule 
+{
   private:
     int pumpPin;
     int fanPin1;

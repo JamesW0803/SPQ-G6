@@ -8,7 +8,8 @@
 #include <vector>
 #include <utility> // for std::pair
 
-struct PlantData {
+struct PlantData 
+{
     String plantId;
     int moisturePin;
     float min_moisture;
@@ -21,7 +22,8 @@ struct PlantData {
     float max_airQuality;
 };
 
-class RESTClient {
+class RESTClient 
+{
 public:
     RESTClient(const String &serverUrl, bool insecure = true);
 

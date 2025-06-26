@@ -144,7 +144,8 @@ void ActuatorModule::setFan(bool state, bool system)
 {
   const bool currentState = digitalRead(fanPin1) == HIGH ? true : false;
   const bool currentState2 = digitalRead(fanPin2) == HIGH ? true : false;
-  if( currentState == state && currentState2 == state ) {
+  if( currentState == state && currentState2 == state ) 
+  {
     Serial.println("Fan is already in the desired state. No action taken.");
     return;
   }
@@ -161,7 +162,8 @@ void ActuatorModule::setFan(bool state, bool system)
 void ActuatorModule::setLight(bool state, bool system)
 {
   const bool currentState = digitalRead(lightPin) == HIGH ? true : false;
-  if( currentState == state ) {
+  if( currentState == state ) 
+  {
     Serial.println("Light is already in the desired state. No action taken.");
     return;
   }

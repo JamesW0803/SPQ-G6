@@ -6,8 +6,8 @@
 #include <ArduinoJson.h>
 #include <Arduino.h>
 
-class MqttModule {
-
+class MqttModule 
+{
   public:
   static void connectToMqtt(Adafruit_MQTT_Client& mqtt);
 };
